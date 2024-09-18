@@ -11,6 +11,12 @@ class StateNode:
     def __lt__(self, other):
         return self.fValue < other.fValue
 
+    def __eq__(self, other):
+        return self.data == other.data
+
+    def __hash__(self):
+        return hash(str(self.data))
+
     def successorStates(self):
         x, y = self.findEmptySpace()  # Find Empty Space coordinates
 
@@ -132,6 +138,7 @@ class Puzzle:
         heapq.heappush(self.openList, startNode)  # Priority Queue Initialization with Start Node
 
         movesLeft = self.moves
+        visited = set()  # Set to store visited states for redundancy check
 
         while self.openList:
             if movesLeft == 0:
@@ -141,15 +148,18 @@ class Puzzle:
             minNode = heapq.heappop(self.openList)  # Get Min F-Value State Node
             movesLeft -= 1
             self.printState(minNode.data)
-            print(f"\n Moves Left = {movesLeft}")
+            print(f"\n H = {minNode.fValue} \n Moves Left = {movesLeft}")
 
             if self.calculateHeuristic(minNode.data) == 0:
                 print(f"\n Goal State Reached using {self.moves - movesLeft} moves")
                 return
 
+            visited.add(minNode)
+
             for child in minNode.successorStates():
-                child.fValue = self.calculateFValue(child)  # Find H-Val of Child Nodes / Succeeding States
-                heapq.heappush(self.openList, child)  # Push them in PRIORITY-QUEUE
+                if child not in visited:
+                    child.fValue = self.calculateFValue(child)  # Find H-Val of Child Nodes / Succeeding States
+                    heapq.heappush(self.openList, child)  # Push them in PRIORITY-QUEUE
 
             self.closedList.append(minNode)
 
