@@ -135,7 +135,7 @@ class Puzzle:
         startNode = StateNode(self.initialState, 0, 0)  # Start Node Initialization
         startNode.fValue = self.calculateFValue(startNode)
 
-        heapq.heappush(self.openList, startNode)  # Priority Queue Initialization with Start Node
+        heapq.heappush(self.openList, startNode)  # Priority Queue Initialization with Start Node and Open-List
 
         movesLeft = self.moves
         visited = set()  # Set to store visited states for redundancy check
@@ -154,15 +154,15 @@ class Puzzle:
                 print(f"\n Goal State Reached using {self.moves - movesLeft} moves")
                 return
 
-            visited.add(minNode)
+            visited.add(minNode)  # Tracking Visited States for redundancy check
 
             for child in minNode.successorStates():
                 if child not in visited:
                     child.fValue = self.calculateFValue(child)  # Find H-Val of Child Nodes / Succeeding States
                     heapq.heappush(self.openList, child)  # Push them in PRIORITY-QUEUE
 
-            self.closedList.append(minNode)
+            self.closedList.append(minNode)  # Tracking Expanded States
 
 
 puzzle = Puzzle()
-puzzle.solvePuzzle()
+puzzle.solvePuzzle()  # Calling Puzzle Solver

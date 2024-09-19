@@ -1,5 +1,5 @@
 Puzzle Size = 3
-Total Moves = 20000
+Total Moves = 150
 
 Initial = 1,2,3 4,0,5 6,7,8
 
