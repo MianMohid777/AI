@@ -83,7 +83,7 @@ class Puzzle:
 
     # Method to read file
     def readFile(self):
-        with open("input.txt", "r") as file:
+        with open("input3.txt", "r") as file:
             lineCount = 1
             for line in file:
                 if len(line.strip()) > 0:  # Skip empty lines
@@ -110,7 +110,7 @@ class Puzzle:
                     return i, j
         return None
 
-    def calculateHeuristic(self, start):
+    def calculate_Manhattan_Heuristic(self, start):
         h = 0
         for i in range(self.size):
             for j in range(self.size):
@@ -119,8 +119,21 @@ class Puzzle:
                     h += abs(goalX - i) + abs(goalY - j)  # Using Manhattan Distance to Calc Heuristics
         return h
 
-    def calculateFValue(self, stateNode):
-        return stateNode.depth + self.calculateHeuristic(stateNode.data)  # f(n) = g(n) + h(n)
+    def calculateMisplaced_Heuristic(self, start):
+        h = 0
+        for i in range(self.size):
+            for j in range(self.size):
+                if start[i][j] != 0 and start[i][j] != self.goalState[i][j]:
+                    h += 1  # Using Misplaced Tiles to Calc Heuristics
+        return h
+
+    def calculateFValue(self, stateNode, heuristic):
+        if heuristic == "Manhattan":
+            return stateNode.depth + self.calculate_Manhattan_Heuristic(stateNode.data)  # f(n) = g(n) + h(n)
+        elif heuristic == "Misplaced":
+            return stateNode.depth + self.calculateMisplaced_Heuristic(stateNode.data)
+        else:
+            return None
 
     def printState(self, state):
         print("\n")
@@ -133,7 +146,7 @@ class Puzzle:
         self.readFile()  # Loading Data from File
 
         startNode = StateNode(self.initialState, 0, 0)  # Start Node Initialization
-        startNode.fValue = self.calculateFValue(startNode)
+        startNode.fValue = self.calculateFValue(startNode, "Manhattan")
 
         heapq.heappush(self.openList, startNode)  # Priority Queue Initialization with Start Node and Open-List
 
@@ -150,7 +163,7 @@ class Puzzle:
             self.printState(minNode.data)
             print(f"\n H = {minNode.fValue} \n Moves Left = {movesLeft}")
 
-            if self.calculateHeuristic(minNode.data) == 0:
+            if self.calculate_Manhattan_Heuristic(minNode.data) == 0:
                 print(f"\n Goal State Reached using {self.moves - movesLeft} moves")
                 return
 
@@ -158,7 +171,8 @@ class Puzzle:
 
             for child in minNode.successorStates():
                 if child not in visited:
-                    child.fValue = self.calculateFValue(child)  # Find H-Val of Child Nodes / Succeeding States
+                    child.fValue = self.calculateFValue(child,
+                                                        "Manhattan")  # Find H-Val of Child Nodes / Succeeding States
                     heapq.heappush(self.openList, child)  # Push them in PRIORITY-QUEUE
 
             self.closedList.append(minNode)  # Tracking Expanded States
