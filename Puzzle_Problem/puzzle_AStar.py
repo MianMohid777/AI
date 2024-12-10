@@ -2,7 +2,6 @@ import heapq
 
 
 class StateNode:
-
     def __init__(self, data, depth, fValue):
         self.data = data
         self.depth = depth
@@ -12,51 +11,40 @@ class StateNode:
         return self.fValue < other.fValue
 
     def __eq__(self, other):
-        return self.data == other.data
+        return tuple(map(tuple, self.data)) == tuple(map(tuple, other.data))
 
     def __hash__(self):
-        return hash(str(self.data))
+        return hash(tuple(map(tuple, self.data)))
 
     def successorStates(self):
-        x, y = self.findEmptySpace()  # Find Empty Space coordinates
-
+        x, y = self.findEmptySpace()
         possibleMoves = [[x, y - 1], [x, y + 1], [x + 1, y], [x - 1, y]]
         successors = []
 
         for move in possibleMoves:
             if self.isValidMove(move):
-                copiedState = self.copyState()  # copying the current parent state
-                childState = self.swap(copiedState, x, y, move[0], move[1])  # Swapping of Space
+                childState = self.copyState()
+                self.swap(childState, x, y, move[0], move[1])
                 successorNode = StateNode(childState, self.depth + 1, 0)
                 successors.append(successorNode)
         return successors
 
     def copyState(self):
-        copy = []
-
-        for row in self.data:
-            temp = []
-            for col in row:
-                temp.append(col)
-            copy.append(temp)
-        return copy
+        return [row.copy() for row in self.data]
 
     def findEmptySpace(self):
-        for i in range(0, len(self.data)):  # row traversal
-            for j in range(0, len(self.data[0])):  # column traversal
+        for i in range(len(self.data)):
+            for j in range(len(self.data[0])):
                 if self.data[i][j] == 0:
                     return i, j
+        return None
 
     def isValidMove(self, move):
-        x = move[0]
-        y = move[1]
-        return 0 <= x < len(self.data) and 0 <= y < len(self.data)
+        x, y = move
+        return 0 <= x < len(self.data) and 0 <= y < len(self.data[0])
 
     def swap(self, state, x1, y1, x2, y2):
-        store = state[x2][y2]
-        state[x2][y2] = state[x1][y1]
-        state[x1][y1] = store
-
+        state[x1][y1], state[x2][y2] = state[x2][y2], state[x1][y1]
         return state
 
 
@@ -68,8 +56,6 @@ class Puzzle:
         self.moves = 0
         self.initialState = []
         self.goalState = []
-        self.openList = []
-        self.closedList = []
 
     # Method to populate state arrays
     def populateState(self, stateArray, rows):
@@ -82,8 +68,8 @@ class Puzzle:
             stateArray.append(initArr)  # Add the row to the state array
 
     # Method to read file
-    def readFile(self):
-        with open("input3.txt", "r") as file:
+    def readFile(self, fileName):
+        with open(fileName, "r") as file:
             lineCount = 1
             for line in file:
                 if len(line.strip()) > 0:  # Skip empty lines
@@ -103,10 +89,10 @@ class Puzzle:
 
                     lineCount += 1  # Line Count Track
 
-    def findPositions(self, state, value):
+    def findPositions(self, value):
         for i in range(self.size):
             for j in range(self.size):
-                if state[i][j] == value:
+                if self.goalState[i][j] == value:
                     return i, j
         return None
 
@@ -115,7 +101,7 @@ class Puzzle:
         for i in range(self.size):
             for j in range(self.size):
                 if start[i][j] != 0 and start[i][j] != self.goalState[i][j]:
-                    goalX, goalY = self.findPositions(self.goalState, start[i][j])
+                    goalX, goalY = self.findPositions(start[i][j])
                     h += abs(goalX - i) + abs(goalY - j)  # Using Manhattan Distance to Calc Heuristics
         return h
 
@@ -142,41 +128,57 @@ class Puzzle:
                 print(f" {state[i][j]} ", end="")
             print()
 
-    def solvePuzzle(self):
-        self.readFile()  # Loading Data from File
+    def solvePuzzle(self, fileName):
+        self.readFile(fileName)  # Loading Data from File
 
         startNode = StateNode(self.initialState, 0, 0)  # Start Node Initialization
-        startNode.fValue = self.calculateFValue(startNode, "Manhattan")
+        startNode.fValue = self.calculate_Manhattan_Heuristic(startNode.data)
 
-        heapq.heappush(self.openList, startNode)  # Priority Queue Initialization with Start Node and Open-List
+        openList = []
+        heapq.heappush(openList, startNode)  # Priority Queue Initialization with Start Node and Open-List Set
 
         movesLeft = self.moves
         visited = set()  # Set to store visited states for redundancy check
 
-        while self.openList:
+        while openList:
+
             if movesLeft == 0:
                 print("All Moves have been utilized but Goal State couldn't be reached")
                 return
 
-            minNode = heapq.heappop(self.openList)  # Get Min F-Value State Node
-            movesLeft -= 1
+            minNode = heapq.heappop(openList)  # Get Min F-Value State Node
             self.printState(minNode.data)
             print(f"\n H = {minNode.fValue} \n Moves Left = {movesLeft}")
 
-            if self.calculate_Manhattan_Heuristic(minNode.data) == 0:
-                print(f"\n Goal State Reached using {self.moves - movesLeft} moves")
+            # Convert current state to a hashable tuple for comparison
+            current_state_tuple = tuple(map(tuple, minNode.data))
+
+            # Check if goal state is reached
+            if current_state_tuple == tuple(map(tuple, self.goalState)):
+                print(f"\n Goal State Reached using {minNode.depth} moves")
                 return
 
-            visited.add(minNode)  # Tracking Visited States for redundancy check
+            movesLeft -= 1
+
+            # Add current state to visited
+            visited.add(current_state_tuple)
 
             for child in minNode.successorStates():
-                if child not in visited:
-                    child.fValue = self.calculateFValue(child,
-                                                        "Manhattan")  # Find H-Val of Child Nodes / Succeeding States
-                    heapq.heappush(self.openList, child)  # Push them in PRIORITY-QUEUE
+                # Convert child state to hashable tuple
+                child_state_tuple = tuple(map(tuple, child.data))
 
-            self.closedList.append(minNode)  # Tracking Expanded States
+                # Check if state has not been visited before
+                if child_state_tuple not in visited:
+                    child.fValue = self.calculateFValue(child, "Manhattan")
+                    heapq.heappush(openList, child)
+
+                # Calculate f-value
+                child.fValue = child.depth + self.calculate_Manhattan_Heuristic(child.data)
+
+                # Add to open set if not already present or with better f-value
+                if child not in openList:
+                    heapq.heappush(openList, child)
 
 
 puzzle = Puzzle()
-puzzle.solvePuzzle()  # Calling Puzzle Solver
+puzzle.solvePuzzle("input3.txt")  # Calling Puzzle Solver
